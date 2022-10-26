@@ -1,0 +1,12 @@
+[package]
+name = "humanize"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["duration", "serde"]
+
+duration = []
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"], optional = true }

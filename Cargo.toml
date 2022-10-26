@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["duration", "serde"]
+default = ["duration", "bytes", "serde"]
 
 duration = []
+bytes = []
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"], optional = true }

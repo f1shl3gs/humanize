@@ -140,14 +140,12 @@ pub mod serde {
     use super::{bytes, parse_bytes};
     use serde::{Deserializer, Serializer};
 
-    pub fn deserialize_bytes<'de, D: Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<usize, D::Error> {
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<usize, D::Error> {
         let s: Cow<str> = serde::__private::de::borrow_cow_str(deserializer)?;
         parse_bytes(&s).map_err(serde::de::Error::custom)
     }
 
-    pub fn serialize_bytes<S: Serializer>(u: &usize, s: S) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: Serializer>(u: &usize, s: S) -> Result<S::Ok, S::Error> {
         let b = bytes(*u);
         s.serialize_str(&b)
     }
@@ -158,7 +156,7 @@ pub mod serde_option {
     use super::{bytes, parse_bytes};
     use serde::{Deserialize, Deserializer, Serializer};
 
-    pub fn deserialize_bytes_option<'de, D: Deserializer<'de>>(
+    pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
     ) -> Result<Option<usize>, D::Error> {
         let s: Option<String> = Option::deserialize(deserializer)?;
@@ -171,10 +169,7 @@ pub mod serde_option {
         }
     }
 
-    pub fn serialize_bytes_option<S: Serializer>(
-        u: &Option<usize>,
-        s: S,
-    ) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: Serializer>(u: &Option<usize>, s: S) -> Result<S::Ok, S::Error> {
         match u {
             Some(v) => s.serialize_str(bytes(*v).as_str()),
             None => s.serialize_none(),

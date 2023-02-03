@@ -14,6 +14,10 @@ const WEEK: u64 = 7 * DAY;
 pub struct Duration(i64);
 
 impl Duration {
+    pub fn from_secs(s: u64) -> Self {
+        Self((s * SECOND) as i64)
+    }
+
     pub fn to_std(&self) -> std::time::Duration {
         std::time::Duration::from_nanos(self.0 as u64)
     }

@@ -19,6 +19,7 @@ const TBYTE: usize = GBYTE * 1000;
 const PBYTE: usize = TBYTE * 1000;
 const EBYTE: usize = PBYTE * 1000;
 
+#[derive(Copy, Clone, Debug)]
 pub struct ByteSize(usize);
 
 impl ByteSize {

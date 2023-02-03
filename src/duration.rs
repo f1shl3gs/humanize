@@ -11,6 +11,7 @@ const HOUR: u64 = 60 * MINUTE;
 const DAY: u64 = 24 * HOUR;
 const WEEK: u64 = 7 * DAY;
 
+#[derive(Copy, Clone, Debug)]
 pub struct Duration(i64);
 
 impl Duration {

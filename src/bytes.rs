@@ -19,39 +19,6 @@ const TBYTE: usize = GBYTE * 1000;
 const PBYTE: usize = TBYTE * 1000;
 const EBYTE: usize = PBYTE * 1000;
 
-#[derive(Copy, Clone, Debug)]
-pub struct ByteSize(usize);
-
-impl ByteSize {
-    pub fn to_usize(&self) -> usize {
-        self.0
-    }
-}
-
-#[cfg(feature = "serde")]
-mod serde {
-    use std::borrow::Cow;
-
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-    use crate::bytes::{bytes, ByteSize, parse_bytes};
-
-    impl<'de> Deserialize<'de> for ByteSize {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
-            let s: Cow<str> = serde::__private::de::borrow_cow_str(deserializer)?;
-            let size = parse_bytes(&s).map_err(serde::de::Error::custom)?;
-            Ok(ByteSize(size))
-        }
-    }
-
-    impl Serialize for ByteSize {
-        fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error> where S: Serializer {
-            let text = bytes(self.0);
-            s.serialize_str(&text)
-        }
-    }
-}
-
 #[derive(Debug)]
 pub enum ParseError {
     ParseFloat { source: ParseFloatError },
@@ -79,9 +46,10 @@ impl From<ParseFloatError> for ParseError {
 
 /// bytes produces a human readable representation of an SI size
 ///
-/// See also: parse_bytes
+/// See also: `parse_bytes`
 ///
 /// Bytes(82854982) -> 83 MB
+#[must_use]
 pub fn bytes(s: usize) -> String {
     humanate_bytes(s, 1000.0, ["B", "kB", "MB", "GB", "TB", "PB", "EB"])
 }
@@ -89,14 +57,19 @@ pub fn bytes(s: usize) -> String {
 /// ibytes produces a human readable representation of an IEC size.
 ///
 /// IBytes(82854982) -> 79 MiB
+#[must_use]
 pub fn ibytes(s: usize) -> String {
     humanate_bytes(s, 1024.0, ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"])
 }
 
-/// parse_bytes parses a string representation of bytes into the number of bytes it represents
+/// `parse_bytes` parses a string representation of bytes into the number of bytes it represents
 ///
 /// parse_bytes("42 MB") -> Ok(42000000)
 /// parse_bytes("42 mib") -> Ok(44040192)
+///
+/// # Errors
+///
+/// Return `ParseError` if the input is not valid.
 pub fn parse_bytes(s: &str) -> Result<usize, ParseError> {
     let mut last_digit = 0;
     let mut has_comma = false;
@@ -164,6 +137,50 @@ fn humanate_bytes(s: usize, base: f64, sizes: [&str; 7]) -> String {
     let val = val.floor() / 10.0;
 
     format!("{} {}", val, suffix)
+}
+
+#[cfg(feature = "serde")]
+pub mod serde {
+    use std::borrow::Cow;
+
+    use super::{bytes, parse_bytes};
+    use serde::{Deserializer, Serializer};
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<usize, D::Error> {
+        let s: Cow<str> = serde::__private::de::borrow_cow_str(deserializer)?;
+        parse_bytes(&s).map_err(serde::de::Error::custom)
+    }
+
+    pub fn serialize<S: Serializer>(u: &usize, s: S) -> Result<S::Ok, S::Error> {
+        let b = bytes(*u);
+        s.serialize_str(&b)
+    }
+}
+
+#[cfg(feature = "serde")]
+pub mod serde_option {
+    use super::{bytes, parse_bytes};
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Option<usize>, D::Error> {
+        let s: Option<String> = Option::deserialize(deserializer)?;
+        match s {
+            None => Ok(None),
+            Some(s) => {
+                let size = parse_bytes(&s).map_err(serde::de::Error::custom)?;
+                Ok(Some(size))
+            }
+        }
+    }
+
+    pub fn serialize<S: Serializer>(u: &Option<usize>, s: S) -> Result<S::Ok, S::Error> {
+        match u {
+            Some(v) => s.serialize_str(bytes(*v).as_str()),
+            None => s.serialize_none(),
+        }
+    }
 }
 
 #[cfg(test)]

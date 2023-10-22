@@ -158,7 +158,7 @@ pub mod serde {
 
 #[cfg(feature = "serde")]
 pub mod serde_option {
-    use super::{bytes, parse_bytes};
+    use super::{ibytes, parse_bytes};
     use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn deserialize<'de, D: Deserializer<'de>>(
@@ -176,7 +176,7 @@ pub mod serde_option {
 
     pub fn serialize<S: Serializer>(u: &Option<usize>, s: S) -> Result<S::Ok, S::Error> {
         match u {
-            Some(v) => s.serialize_str(bytes(*v).as_str()),
+            Some(v) => s.serialize_str(ibytes(*v).as_str()),
             None => s.serialize_none(),
         }
     }

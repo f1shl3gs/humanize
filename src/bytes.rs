@@ -136,20 +136,13 @@ fn humanate_bytes(s: usize, base: f64, sizes: [&str; 7]) -> String {
     let val = val.floor() / 10.0;
 
     format!("{}{}", val, suffix)
-    /*
-        if val < 10.0 {
-            format!("{:.1}{}", val, suffix)
-        } else {
-            format!("{:.0}{}", val, suffix)
-        }
-    */
 }
 
 #[cfg(feature = "serde")]
 pub mod serde {
     use std::borrow::Cow;
 
-    use super::{bytes, parse_bytes};
+    use super::{ibytes, parse_bytes};
     use serde::{Deserializer, Serializer};
 
     pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<usize, D::Error> {
@@ -158,7 +151,7 @@ pub mod serde {
     }
 
     pub fn serialize<S: Serializer>(u: &usize, s: S) -> Result<S::Ok, S::Error> {
-        let b = bytes(*u);
+        let b = ibytes(*u);
         s.serialize_str(&b)
     }
 }

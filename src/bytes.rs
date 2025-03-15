@@ -26,6 +26,8 @@ pub enum ParseError {
     TooLarge { input: String },
 }
 
+impl std::error::Error for ParseError {}
+
 impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {

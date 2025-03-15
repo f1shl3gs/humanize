@@ -163,7 +163,7 @@ fn parse(text: &str) -> Result<i64, ParseError> {
         let mut i = 0;
         while i < s.len() {
             let c = s[i];
-            if c == b'.' || (b'0'..=b'9').contains(&c) {
+            if c == b'.' || c.is_ascii_digit() {
                 break;
             }
 
@@ -239,7 +239,7 @@ pub fn to_string(d: i64) -> String {
     let neg = d < 0;
 
     let d = d as u64;
-    let mut u = d as u64;
+    let mut u = d;
 
     if u < SECOND as u64 {
         // Special case: if duration is smaller thant a second,
@@ -327,7 +327,7 @@ pub fn to_string(d: i64) -> String {
         buf[w] = b'-';
     }
 
-    return String::from_utf8_lossy(&buf[w..]).to_string();
+    String::from_utf8_lossy(&buf[w..]).to_string()
 }
 
 // fmt_frac formats the fraction of v / 10 ** prec (e.g., ".12345") into the

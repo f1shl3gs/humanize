@@ -20,33 +20,33 @@ const PBYTE: usize = TBYTE * 1000;
 const EBYTE: usize = PBYTE * 1000;
 
 #[derive(Debug)]
-pub enum ParseError {
-    ParseFloat { source: ParseFloatError },
-    UnknownUnit { unit: String },
-    TooLarge { input: String },
+pub enum Error<'a> {
+    ParseFloat(ParseFloatError),
+    UnknownUnit { unit: &'a str },
+    TooLarge { input: &'a str },
 }
 
-impl std::error::Error for ParseError {}
+impl<'a> std::error::Error for Error<'a> {}
 
-impl Display for ParseError {
+impl<'a> Display for Error<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParseError::ParseFloat { source: err } => {
+            Error::ParseFloat(err) => {
                 write!(f, "parse float part failed, {}", err)
             }
-            ParseError::UnknownUnit { unit: u } => write!(f, "unknown unit \"{}\"", u),
-            ParseError::TooLarge { input: i } => write!(f, "too large \"{}\"", i),
+            Error::UnknownUnit { unit } => write!(f, "unknown unit \"{}\"", unit),
+            Error::TooLarge { input } => write!(f, "too large \"{}\"", input),
         }
     }
 }
 
-impl From<ParseFloatError> for ParseError {
+impl<'a> From<ParseFloatError> for Error<'a> {
     fn from(err: ParseFloatError) -> Self {
-        Self::ParseFloat { source: err }
+        Self::ParseFloat(err)
     }
 }
 
-/// bytes produces a human readable representation of an SI size
+/// bytes produces a human-readable representation of an SI size
 ///
 /// See also: `parse_bytes`
 ///
@@ -56,7 +56,7 @@ pub fn bytes(s: usize) -> String {
     humanate_bytes(s, 1000.0, ["B", "kB", "MB", "GB", "TB", "PB", "EB"])
 }
 
-/// ibytes produces a human readable representation of an IEC size.
+/// ibytes produces a human-readable representation of an IEC size.
 ///
 /// ibytes((82854982) -> 79 MiB
 #[must_use]
@@ -71,55 +71,44 @@ pub fn ibytes(s: usize) -> String {
 ///
 /// # Errors
 ///
-/// Return `ParseError` if the input is not valid.
-pub fn parse_bytes(s: &str) -> Result<usize, ParseError> {
+/// Return `Error` if the input is not valid.
+pub fn parse_bytes(input: &str) -> Result<usize, Error<'_>> {
     let mut last_digit = 0;
-    let mut has_comma = false;
 
-    for c in s.chars() {
-        if !(c.is_ascii_digit() || c == '.' || c == ',') {
+    for ch in input.chars() {
+        if !(ch.is_ascii_digit() || ch == '.') {
             break;
-        }
-
-        if c == ',' {
-            has_comma = true;
         }
 
         last_digit += 1;
     }
 
-    let num = &s[..last_digit];
-    let mut tn = num.to_string();
-    if has_comma {
-        tn = num.replace(',', "");
-    }
+    let flt = &input[..last_digit].parse::<f64>()?;
+    let unit = input[last_digit..].trim();
 
-    let f = tn.parse::<f64>()?;
-    let extra = &s[last_digit..];
-    let extra = extra.trim().to_lowercase();
-
-    let m = match extra.as_str() {
-        "b" | "" => BYTE,
-        "kib" | "ki" => KIBYTE,
-        "kb" | "k" => KBYTE,
-        "mib" | "mi" => MIBYTE,
-        "mb" | "m" => MBYTE,
-        "gib" | "gi" => GIBYTE,
-        "gb" | "g" => GBYTE,
-        "tib" | "ti" => TIBYTE,
-        "tb" | "t" => TBYTE,
-        "pib" | "pi" => PIBYTE,
-        "pb" | "p" => PBYTE,
-        "eib" | "ei" => EIBYTE,
-        "eb" | "e" => EBYTE,
-        _ => {
-            return Err(ParseError::UnknownUnit {
-                unit: extra.clone(),
-            });
-        }
+    let scale = match unit.len() {
+        0 => BYTE,
+        1 => calculate_scale(unit, 1000, &["b", "k", "m", "g", "t", "p", "e"])
+            .ok_or(Error::UnknownUnit { unit })?,
+        2 => calculate_scale(unit, 1000, &["", "kb", "mb", "gb", "tb", "pb", "eb"])
+            .or_else(|| calculate_scale(unit, 1024, &["", "ki", "mi", "gi", "ti", "pi", "ei"]))
+            .ok_or(Error::UnknownUnit { unit })?,
+        3 => calculate_scale(unit, 1024, &["", "kib", "mib", "gib", "tib", "pib", "eib"])
+            .ok_or(Error::UnknownUnit { unit })?,
+        _ => return Err(Error::UnknownUnit { unit }),
     };
 
-    Ok((f * m as f64) as usize)
+    Ok((flt * scale as f64) as usize)
+}
+
+fn calculate_scale(input: &str, base: usize, units: &[&str]) -> Option<usize> {
+    units.iter().enumerate().find_map(|(index, unit)| {
+        if input.eq_ignore_ascii_case(unit) {
+            Some(base.pow(index as u32))
+        } else {
+            None
+        }
+    })
 }
 
 #[inline]
@@ -189,9 +178,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_bytes() {
+    fn parse() {
         let tests = [
             ("42", 42),
+            ("42b", 42),
             ("42MB", 42000000),
             ("42MiB", 44040192),
             ("42mb", 42000000),
@@ -221,8 +211,7 @@ mod tests {
             ("42.5Mi", 44564480),
             ("42.5 M", 42500000),
             ("42.5 Mi", 44564480),
-            // Bug #42
-            ("1,005.03 MB", 1005030000),
+            ("1005.03 MB", 1005030000),
             // Large testing, breaks when too much larger than
             // this.
             ("12.5 EB", (12.5 * EBYTE as f64) as usize),
@@ -232,12 +221,12 @@ mod tests {
 
         for (input, want) in tests {
             let value = parse_bytes(input).unwrap();
-            assert_eq!(value, want as usize, "input: {}", input);
+            assert_eq!(value, want, "input: {}", input);
         }
     }
 
     #[test]
-    fn test_bytes() {
+    fn stringify() {
         let tests = [
             ("bytes(0)", bytes(0), "0B"),
             ("bytes(1)", bytes(1), "1B"),

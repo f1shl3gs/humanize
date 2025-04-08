@@ -3,7 +3,7 @@ use criterion::{Criterion, criterion_group, criterion_main};
 
 use humanize::duration::{duration, parse_duration};
 
-pub fn parse_duration_benchmark(c: &mut Criterion) -> &mut Criterion<WallTime> {
+pub fn benchmark(c: &mut Criterion) -> &mut Criterion<WallTime> {
     c.bench_function("parse_duration", |b| {
         b.iter(|| {
             parse_duration("3m20s").unwrap();
@@ -17,5 +17,5 @@ pub fn parse_duration_benchmark(c: &mut Criterion) -> &mut Criterion<WallTime> {
     })
 }
 
-criterion_group!(benches, parse_duration_benchmark);
+criterion_group!(benches, benchmark);
 criterion_main!(benches);

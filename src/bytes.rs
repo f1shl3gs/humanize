@@ -137,8 +137,8 @@ pub mod serde {
     use serde::{Deserializer, Serializer};
 
     pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<usize, D::Error> {
-        let s: Cow<str> = serde::__private::de::borrow_cow_str(deserializer)?;
-        parse_bytes(&s).map_err(serde::de::Error::custom)
+        let s: Cow<str> = serde::Deserialize::deserialize(deserializer)?;
+        parse_bytes(s.as_ref()).map_err(serde::de::Error::custom)
     }
 
     pub fn serialize<S: Serializer>(u: &usize, s: S) -> Result<S::Ok, S::Error> {

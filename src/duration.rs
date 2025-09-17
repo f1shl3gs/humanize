@@ -387,8 +387,8 @@ pub mod serde {
     pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
     ) -> Result<std::time::Duration, D::Error> {
-        let s: Cow<str> = serde::__private::de::borrow_cow_str(deserializer)?;
-        parse_duration(&s).map_err(serde::de::Error::custom)
+        let s: Cow<str> = serde::Deserialize::deserialize(deserializer)?;
+        parse_duration(s.as_ref()).map_err(serde::de::Error::custom)
     }
 
     pub fn serialize<S: Serializer>(d: &std::time::Duration, s: S) -> Result<S::Ok, S::Error> {

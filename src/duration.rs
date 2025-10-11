@@ -382,13 +382,13 @@ pub mod serde {
     use std::borrow::Cow;
 
     use super::{duration, parse_duration};
-    use serde::{Deserializer, Serializer};
+    use serde_core::{Deserializer, Serializer, Deserialize, de};
 
     pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
     ) -> Result<std::time::Duration, D::Error> {
-        let s: Cow<str> = serde::Deserialize::deserialize(deserializer)?;
-        parse_duration(s.as_ref()).map_err(serde::de::Error::custom)
+        let s: Cow<str> = Deserialize::deserialize(deserializer)?;
+        parse_duration(s.as_ref()).map_err(de::Error::custom)
     }
 
     pub fn serialize<S: Serializer>(d: &std::time::Duration, s: S) -> Result<S::Ok, S::Error> {
@@ -399,7 +399,7 @@ pub mod serde {
 #[cfg(feature = "serde")]
 pub mod serde_option {
     use super::{duration, parse_duration};
-    use serde::{Deserialize, Deserializer, Serializer};
+    use serde_core::{Deserialize, Deserializer, Serializer, de};
 
     pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
@@ -407,7 +407,7 @@ pub mod serde_option {
         let s: Option<String> = Option::deserialize(deserializer)?;
         match s {
             Some(text) => {
-                let duration = parse_duration(&text).map_err(serde::de::Error::custom)?;
+                let duration = parse_duration(&text).map_err(de::Error::custom)?;
                 Ok(Some(duration))
             }
             None => Ok(None),

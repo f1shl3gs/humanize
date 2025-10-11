@@ -134,11 +134,11 @@ pub mod serde {
     use std::borrow::Cow;
 
     use super::{ibytes, parse_bytes};
-    use serde::{Deserializer, Serializer};
+    use serde_core::{Deserialize, Deserializer, Serializer, de};
 
     pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<usize, D::Error> {
-        let s: Cow<str> = serde::Deserialize::deserialize(deserializer)?;
-        parse_bytes(s.as_ref()).map_err(serde::de::Error::custom)
+        let s: Cow<str> = Deserialize::deserialize(deserializer)?;
+        parse_bytes(s.as_ref()).map_err(de::Error::custom)
     }
 
     pub fn serialize<S: Serializer>(u: &usize, s: S) -> Result<S::Ok, S::Error> {
@@ -150,7 +150,7 @@ pub mod serde {
 #[cfg(feature = "serde")]
 pub mod serde_option {
     use super::{ibytes, parse_bytes};
-    use serde::{Deserialize, Deserializer, Serializer};
+    use serde_core::{Deserialize, Deserializer, Serializer, de};
 
     pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
@@ -159,7 +159,7 @@ pub mod serde_option {
         match s {
             None => Ok(None),
             Some(s) => {
-                let size = parse_bytes(&s).map_err(serde::de::Error::custom)?;
+                let size = parse_bytes(&s).map_err(de::Error::custom)?;
                 Ok(Some(size))
             }
         }

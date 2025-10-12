@@ -131,13 +131,11 @@ fn humanate_bytes(s: usize, base: f64, sizes: [&str; 7]) -> String {
 
 #[cfg(feature = "serde")]
 pub mod serde {
-    use std::borrow::Cow;
-
     use super::{ibytes, parse_bytes};
     use serde_core::{Deserialize, Deserializer, Serializer, de};
 
     pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<usize, D::Error> {
-        let s: Cow<str> = Deserialize::deserialize(deserializer)?;
+        let s: &str = Deserialize::deserialize(deserializer)?;
         parse_bytes(s.as_ref()).map_err(de::Error::custom)
     }
 
@@ -155,11 +153,11 @@ pub mod serde_option {
     pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
     ) -> Result<Option<usize>, D::Error> {
-        let s: Option<String> = Option::deserialize(deserializer)?;
+        let s: Option<&str> = Option::deserialize(deserializer)?;
         match s {
             None => Ok(None),
             Some(s) => {
-                let size = parse_bytes(&s).map_err(de::Error::custom)?;
+                let size = parse_bytes(s).map_err(de::Error::custom)?;
                 Ok(Some(size))
             }
         }

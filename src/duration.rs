@@ -379,16 +379,15 @@ fn fmt_int(buf: &mut [u8], mut v: u64) -> usize {
 
 #[cfg(feature = "serde")]
 pub mod serde {
-    use std::borrow::Cow;
+    use serde_core::{Deserializer, Serializer, Deserialize, de};
 
     use super::{duration, parse_duration};
-    use serde_core::{Deserializer, Serializer, Deserialize, de};
 
     pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
     ) -> Result<std::time::Duration, D::Error> {
-        let s: Cow<str> = Deserialize::deserialize(deserializer)?;
-        parse_duration(s.as_ref()).map_err(de::Error::custom)
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        parse_duration(s).map_err(de::Error::custom)
     }
 
     pub fn serialize<S: Serializer>(d: &std::time::Duration, s: S) -> Result<S::Ok, S::Error> {
@@ -404,10 +403,11 @@ pub mod serde_option {
     pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
     ) -> Result<Option<std::time::Duration>, D::Error> {
-        let s: Option<String> = Option::deserialize(deserializer)?;
+        let s: Option<&str> = Option::deserialize(deserializer)?;
+
         match s {
             Some(text) => {
-                let duration = parse_duration(&text).map_err(de::Error::custom)?;
+                let duration = parse_duration(text).map_err(de::Error::custom)?;
                 Ok(Some(duration))
             }
             None => Ok(None),

@@ -25,4 +25,4 @@ path = "benches/bytes.rs"
 criterion = { version = "0.7", default-features = false }
 
 [dependencies]
-serde_core = { version = "1.0", optional = true, default-features = false, features = ["alloc"] }
+serde_core = { version = "1.0", optional = true, default-features = false }

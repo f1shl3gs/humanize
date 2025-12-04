@@ -131,12 +131,16 @@ fn humanate_bytes(s: usize, base: f64, sizes: [&str; 7]) -> String {
 
 #[cfg(feature = "serde")]
 pub mod serde {
+    use std::borrow::Cow;
+
+    use serde_core::de::Error;
+    use serde_core::{Deserialize, Deserializer, Serializer};
+
     use super::{ibytes, parse_bytes};
-    use serde_core::{Deserialize, Deserializer, Serializer, de};
 
     pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<usize, D::Error> {
-        let s: &str = Deserialize::deserialize(deserializer)?;
-        parse_bytes(s.as_ref()).map_err(de::Error::custom)
+        let s: Cow<'de, str> = Deserialize::deserialize(deserializer)?;
+        parse_bytes(s.as_ref()).map_err(Error::custom)
     }
 
     pub fn serialize<S: Serializer>(u: &usize, s: S) -> Result<S::Ok, S::Error> {
@@ -147,17 +151,22 @@ pub mod serde {
 
 #[cfg(feature = "serde")]
 pub mod serde_option {
+    use std::borrow::Cow;
+
+    use serde_core::de::Error;
+    use serde_core::{Deserialize, Deserializer, Serializer};
+
     use super::{ibytes, parse_bytes};
-    use serde_core::{Deserialize, Deserializer, Serializer, de};
 
     pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
     ) -> Result<Option<usize>, D::Error> {
-        let s: Option<&str> = Option::deserialize(deserializer)?;
+        let s: Option<Cow<'de, str>> = Deserialize::deserialize(deserializer)?;
+
         match s {
             None => Ok(None),
             Some(s) => {
-                let size = parse_bytes(s).map_err(de::Error::custom)?;
+                let size = parse_bytes(s.as_ref()).map_err(Error::custom)?;
                 Ok(Some(size))
             }
         }

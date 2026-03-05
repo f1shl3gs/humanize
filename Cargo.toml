@@ -6,7 +6,7 @@ rust-version = "1.89"
 
 [features]
 default = ["duration", "bytes"]
-serde = ["dep:serde_core"]
+serde = ["serde_core/alloc"]
 
 bytes = []
 duration = []
